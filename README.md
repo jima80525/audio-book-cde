@@ -51,4 +51,4 @@ promises that this will work on other versions of linux.
 The most likely issue you will run into will be with the wait_for_cd function
 which seems like it might not be universal.
 
-None of the rest of it is fairly vanilla bash.
+The rest of it is fairly vanilla bash.
