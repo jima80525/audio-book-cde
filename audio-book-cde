@@ -35,7 +35,7 @@
 # $3 - disc number
 # $4 - conf file name
 ###############################################################################
-rip_cd () {
+function rip_cd () {
    # first tell abcde to create the local cddb file without accessing cddb
    abcde -n -a cddb -c $4
 
@@ -48,18 +48,40 @@ rip_cd () {
 }
 
 ###############################################################################
+# is_tray_open
+# uses python to send ioctl to determine if cd tray is open.
+###############################################################################
+function is_tray_open() {
+   # copied and modified from:
+   # https://stackoverflow.com/questions/18580421/determining-when-cd-drawer-has-been-closed
+    python -c 'import os, sys, fcntl
+dev = "/dev/cdrom"
+try:
+    fd = os.open(dev, os.O_RDONLY|os.O_NONBLOCK)
+except:
+    sys.stderr.write("Failed to open device " + dev + ".\n")
+    exit(2)
+r = fcntl.ioctl(fd, 0x5326, 0)
+os.close(fd)
+if r <= 0:
+   sys.stderr.write("Failed IOCTL " + str(r) + "\n")
+   exit(0)
+elif r == 4:
+   exit(1)
+exit(0)
+' "$1"
+}
+
+
+###############################################################################
 # wait_for_cd
 # Sleep-loops until a CD is inserted and recognized by /dev/cdrom
 ###############################################################################
-wait_for_cd () {
-   # uses udisks to wait until the cdrom is closed.
-   # I strongly suspect that this part is not as portable as possible.
-   # I am running linux-mint 17 - Qiana.  It works on this system, but I've not
-   # tested on any others.
-   if ! udisks --show-info /dev/cdrom | grep -qi "optical disc" - ; then
+function wait_for_cd () {
+   if is_tray_open ; then
       echo disc open - waiting for new CD...
    fi
-   while ! udisks --show-info /dev/cdrom | grep -qi "optical disc" - ; do
+   while is_tray_open ; do
       sleep 1
    done
 }
@@ -71,8 +93,21 @@ wait_for_cd () {
 # Parameters
 # $1 - file name
 ###############################################################################
-write_default_conf_file () {
+function write_default_conf_file () {
 cat <<EOF > $1
+# Specify the encoder to use for MP3. In this case 'lame':
+MP3ENCODERSYNTAX=lame 
+
+# Specify the path to the selected encoder. In most cases the encoder
+# should be in your $PATH as I illustrate below, otherwise you will 
+# need to specify the full path. For example: /usr/bin/lame
+LAME=lame
+
+# Specify your required encoding options here. Multiple options can
+# be selected as '--preset standard --another-option' etc.
+# The '-V 2' option gives VBR encoding between 170-210 kbits/s.
+LAMEOPTS='-V 2' 
+   
 # Output type for MP3.
 OUTPUTTYPE="mp3"
 
